@@ -16,10 +16,6 @@ void* produce(void *ptr);
 
 int main() {
     std:: cout << "start producer\n";
-    // const char* name = "/brv";
-    // mode_t mode = 0644;
-    // unsigned value = 0;
-    // int val = sem_init(smphre, 1, 1);
 
     smphre = sem_open("/sembrv", O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, 0);
 
@@ -31,24 +27,23 @@ int main() {
 
     std::cout << "dow\n";
 
-
-    // void* addr = shmat(shmID, data_ptr, IPC_CREAT | 0666);
     void* dataAddr = shmat(shmID, (void*)0, 0);
+    if (dataAddr == (void*)-1) { std::cerr << "Bad shmat use?\n";}
 
-    if (ftruncate(shmID, sizeof(data)) == -1) {
-            std::cerr << "Memory resize failed " << errno;
-     }
+    std::cout << shmID << " " << sizeof(data) << '\n';
 
-    data* shared_data;
-    // ptr = (data*) dataAddr;
-    //Map shared memory to process
+    // if (ftruncate(shmID, sizeof(data)) == -1) {
+    //     std::cerr << "Memory resize failed " << errno;
+    // }
+
+    // data* shared_data;
      
-    shared_data = (data*) mmap(NULL, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, shmID, 0);
+    // shared_data = (data*) mmap(NULL, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, shmID, 0);
     
-    if (shared_data == MAP_FAILED) std::cerr << "Memory map failed :(" << errno;
+    // if (shared_data == MAP_FAILED) std::cerr << "Memory map failed :(" << errno;
 
-    //Unmap shared mem from proccess
-    if (munmap (shared_data, sizeof (data)) == -1) std::cerr<< "munmap " << errno;    
+    // //Unmap shared mem from proccess
+    // if (munmap (shared_data, sizeof (data)) == -1) std::cerr<< "munmap " << errno;    
 
     int detach = shmdt(dataAddr);
 
@@ -64,12 +59,8 @@ int main() {
         // delete &ptr;
     }
 
-    // delete &data_ptr;
-    //TODO:" Cleanup shmat & Sem
     std::cout << "Main thread values: " << (data_ptr)->out << " " << (data_ptr)->in << '\n';
 
-
-        // std::cout << 
     return 0;
 }
 
@@ -84,23 +75,9 @@ void* produce(void *arg_struct) {
     int shmflag = 0;
     int shmID = shmget(key, size, shmflag);
 
-    // int* val;
-    // sem_getvalue(smphre, val);
-    // std::cout << &val << "\n";
-    // sem_trywait(arg_smphre); // wait to enter critical section
-    // std::cout << "Meow\n";
-    // void* shmaddr;
     void* addr = shmat(shmID, ptr->data_ptr, shmflag); // Acquire shared memory
 
-    // data* shared_data = (data *) shmaddr;
-
-    // std::cout << (ptr->data_ptr)->out << " " << (ptr->data_ptr)->in << '\n';
-
-    // data obj = *(ptr->data_ptr);
-
     while (((ptr->data_ptr)->in + 1) % 2 == (ptr->data_ptr)->out) {};// s//td::cout << "Waiting " << obj. in << ' ' << obj.out << '\n';
-
-    // std::cout << "Dow\n";
 
     (ptr->data_ptr)->buffer[(ptr->data_ptr)->in] = 1; // Message 
     (ptr->data_ptr)->in = ((ptr->data_ptr)->in + 1) % 2; // Circular queuei++
@@ -108,7 +85,6 @@ void* produce(void *arg_struct) {
     int detach = shmdt(addr);
         // std::cout << "Grr\n";
     std::cout << "Producer produced an item\n";
-    // std::cout << "Thread values: " << (ptr->data_ptr)->out << ' ' << (ptr->data_ptr)->in << '\n';
 
     sem_post(ptr->sem_ptr); // Only posting in producer
     pthread_exit(0);
