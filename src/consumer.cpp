@@ -46,26 +46,27 @@ void* consume(void *arg_ptr) {
     sem_wait(ptr->sem_ptr); // wait to enter critical section
 
 
-    std::cout << "Hello \n";
+    // std::cout << "Hello \n";
     key_t key = 200;
     size_t size = sizeof(data);
     int shmflag = 0;
     int shmID = shmget(key, size, shmflag);
-        std::cout << "Hello godbye \n";
+        // std::cout << "Hello godbye \n";
 
 
-    void* void_ptr = shmat(shmID, NULL, 0);
+    // void* void_ptr = shmat(shmID, NULL, 0);
     // data* shared_data = (data *) void_ptr;
-    data* dataptr;
+    // data* dataptr;
     // dataptr = (data*) void_ptr;
 
-    void* result= mmap(NULL, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, shmID, 0);
-    if (result == MAP_FAILED) {
-        std::cerr << "Memory map failed :(";
-    } else dataptr = (data*) result;
+    // void* result= mmap(NULL, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, shmID, 0);
+    // if (result == MAP_FAILED) {
+    //     std::cerr << "Memory map failed :(";
+    // } else dataptr = (data*) result;
+    data* dataptr = (data*) shmat(shmID, NULL, 0);
 
-    std::cout << "after ptr conversion\n";
-    std::cout << "Let's check if object exitsts: " << dataptr->in << std::endl;
+    // std::cout << "after ptr conversion\n";
+    // std::cout << "Let's check if object exitsts: " << dataptr->in << std::endl;
 
     while (dataptr->in == dataptr->out) {};//Do nothing if empty
 
@@ -74,7 +75,7 @@ void* consume(void *arg_ptr) {
     dataptr->out = (dataptr->out + 1) % 2;
 
     
-    if (munmap (dataptr, sizeof (data)) == -1) std::cerr<< "munmap";
+    // if (munmap (dataptr, sizeof (data)) == -1) std::cerr<< "munmap";
 
     pthread_exit(0);
 }

@@ -5,11 +5,6 @@
 
 data* data_ptr = new data;
 sem_t* smphre;
-    
-key_t key = 200;
-size_t size = sizeof(data);
-// int shmflag = 0;
-int shmID = shmget(key, size, IPC_CREAT);
 
 //produce method
 void* produce(void *ptr);
@@ -27,10 +22,19 @@ int main() {
 
     std::cout << "dow\n";
 
-    void* dataAddr = shmat(shmID, (void*)0, 0);
-    if (dataAddr == (void*)-1) { std::cerr << "Bad shmat use?\n";}
+    key_t key = 200;
+    size_t size = sizeof(data);
+    // int shmflag = 0;
+    int shmID = shmget(key, size, IPC_CREAT | IPC_EXCL | 0777);
 
-    std::cout << shmID << " " << sizeof(data) << '\n';
+    if (shmID == -1) std::cerr << "Shared memory failed to retrieve";
+
+    data* dataAddr = (data*) shmat(shmID, NULL, 0);
+    if (dataAddr == (void*)-1) { std::cerr << "Bad shmat use? "<< errno << "\n";}
+
+    dataAddr->in = 52;
+    // std::cout << dataAddr->in << "\n";
+    // std::cout << shmID << " " << sizeof(data) << '\n';
 
     // if (ftruncate(shmID, sizeof(data)) == -1) {
     //     std::cerr << "Memory resize failed " << errno;
@@ -60,30 +64,32 @@ int main() {
     }
 
     std::cout << "Main thread values: " << (data_ptr)->out << " " << (data_ptr)->in << '\n';
-
+    shmctl(shmID, 0, 0);
     return 0;
 }
 
 void* produce(void *arg_struct) {
     threadArgs* ptr;
     ptr = (threadArgs*) arg_struct;
-    // sem_t* arg_smphre;
-    // arg_smphre = (sem_t*) ptr;
 
     key_t key = 200;
     size_t size = sizeof(data);
     int shmflag = 0;
     int shmID = shmget(key, size, shmflag);
 
-    void* addr = shmat(shmID, ptr->data_ptr, shmflag); // Acquire shared memory
+    if (shmID < 0) std::cerr << " Bad get " << errno << "\n";
 
-    while (((ptr->data_ptr)->in + 1) % 2 == (ptr->data_ptr)->out) {};// s//td::cout << "Waiting " << obj. in << ' ' << obj.out << '\n';
+    data* addr = (data*) shmat(shmID, NULL, 0); // Acquire shared memory
 
-    (ptr->data_ptr)->buffer[(ptr->data_ptr)->in] = 1; // Message 
-    (ptr->data_ptr)->in = ((ptr->data_ptr)->in + 1) % 2; // Circular queuei++
+    if (addr == (void*)-1) std::cerr << "Bad mat " << errno << "\n";
+
+    while ((addr->in + 1) % 2 == addr->out) {};// s//td::cout << "Waiting " << obj. in << ' ' << obj.out << '\n';
+
+    addr->buffer[addr->in] = 1; // Message 
+    addr->in = (addr->in + 1) % 2; // Circular queuei++
     
     int detach = shmdt(addr);
-        // std::cout << "Grr\n";
+
     std::cout << "Producer produced an item\n";
 
     sem_post(ptr->sem_ptr); // Only posting in producer
