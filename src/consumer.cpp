@@ -28,7 +28,7 @@ int main() {
         ptr->sem_ptr = smphre;
 
         pthread_t threadId;
-        int success = pthread_create(&threadId, NULL, consume, (void*) smphre); // Create thread
+        int success = pthread_create(&threadId, NULL, consume, (void*) ptr); // Create thread
         pthread_join(threadId, NULL); // Blocking wait
 
         std::cout << "Consumed: " << ptr->return_val << "\n";
@@ -37,13 +37,13 @@ int main() {
     return 0;
 }
 
-void* consume(void *sem) {
-    sem_t* ptr;
-    ptr = (sem_t*) sem;
-    // ptr = (consumerArgs*) arg_struct; // Typecast from void to my argument structure
+void* consume(void *arg_ptr) {
+    consumerArgs* ptr;
+    // ptr = (sem_t*) sem;
+    ptr = (consumerArgs*) arg_ptr; // Typecast from void to my argument structure
 
     // std::cout << "Hello\n"
-    sem_wait(ptr); // wait to enter critical section
+    sem_wait(ptr->sem_ptr); // wait to enter critical section
 
 
     std::cout << "Hello \n";
@@ -56,22 +56,25 @@ void* consume(void *sem) {
 
     void* void_ptr = shmat(shmID, NULL, 0);
     // data* shared_data = (data *) void_ptr;
-    struct data* shared_data = mmap(NULL, sizeof(struct data), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (shared_data == MAP_FAILED) {
+    data* dataptr;
+    // dataptr = (data*) void_ptr;
+
+    void* result= mmap(NULL, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, shmID, 0);
+    if (result == MAP_FAILED) {
         std::cerr << "Memory map failed :(";
-    }
+    } else dataptr = (data*) result;
 
     std::cout << "after ptr conversion\n";
-    std::cout << "Let's check if object exitsts: " << shared_data->in << std::endl;
+    std::cout << "Let's check if object exitsts: " << dataptr->in << std::endl;
 
-    while (shared_data->in == shared_data->out) {};//Do nothing if empty
+    while (dataptr->in == dataptr->out) {};//Do nothing if empty
 
 
-    ptr->return_val = shared_data->buffer[shared_data->out];
-    shared_data->out = (shared_data->out + 1) % 2;
+    ptr->return_val = dataptr->buffer[dataptr->out];
+    dataptr->out = (dataptr->out + 1) % 2;
 
     
-    if (munmap (shared_data, sizeof (struct data)) == -1) std::cerr<< "munmap";
+    if (munmap (dataptr, sizeof (data)) == -1) std::cerr<< "munmap";
 
     pthread_exit(0);
 }

@@ -27,7 +27,7 @@ typedef struct {
     data* data_ptr;
 } threadArgs;
 
-// typedef struct {
-//     sem_t* sem_ptr;
-//     int return_val;
-// } consumerArgs;
+typedef struct {
+    sem_t* sem_ptr;
+    int return_val;
+} consumerArgs;

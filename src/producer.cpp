@@ -35,18 +35,20 @@ int main() {
     // void* addr = shmat(shmID, data_ptr, IPC_CREAT | 0666);
     void* dataAddr = shmat(shmID, (void*)0, 0);
 
-    if (ftruncate(shmID, sizeof(struct MySharedData)) == -1) {
-            std::cerr << "Memory resize failed";
+    if (ftruncate(shmID, sizeof(data)) == -1) {
+            std::cerr << "Memory resize failed " << errno;
      }
 
-     
+    data* shared_data;
+    // ptr = (data*) dataAddr;
     //Map shared memory to process
-    struct data* shared_data = mmap(NULL, sizeof(struct data), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+     
+    shared_data = (data*) mmap(NULL, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, shmID, 0);
     
-    if (shared_data == MAP_FAILED) std::cerr << "Memory map failed :(";
+    if (shared_data == MAP_FAILED) std::cerr << "Memory map failed :(" << errno;
 
     //Unmap shared mem from proccess
-    if (munmap (shared_data, sizeof (struct data)) == -1) std::cerr<< "munmap";    
+    if (munmap (shared_data, sizeof (data)) == -1) std::cerr<< "munmap " << errno;    
 
     int detach = shmdt(dataAddr);
 
@@ -67,7 +69,7 @@ int main() {
     std::cout << "Main thread values: " << (data_ptr)->out << " " << (data_ptr)->in << '\n';
 
 
-        std::cout << 
+        // std::cout << 
     return 0;
 }
 
