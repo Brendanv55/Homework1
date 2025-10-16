@@ -8,9 +8,6 @@
 #include <sys/shm.h>
 #include <cstring>
 #include <stdexcept>
-// #include <cstdio>
-// #include <cstdlib>
-// #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -25,3 +22,8 @@ typedef struct {
     sem_t* sem_ptr;
     data* data_ptr;
 } threadArgs;
+
+typedef struct {
+    sem_t* sem_ptr;
+    int return_val;
+} consumerArgs;

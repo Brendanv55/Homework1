@@ -8,41 +8,40 @@ sem_t* smphre;
     
 key_t key = 200;
 size_t size = sizeof(data);
-int shmflag = 0;
-int shmID = shmget(key, size, shmflag);
+// int shmflag = 0;
+int shmID = shmget(key, size, IPC_CREAT);
 
 //produce method
 void* produce(void *ptr);
 
 int main() {
-    std:: cout << "start\n";
+    std:: cout << "start producer\n";
     // const char* name = "/brv";
     // mode_t mode = 0644;
     // unsigned value = 0;
     // int val = sem_init(smphre, 1, 1);
 
-    smphre = sem_open("/sembrv", O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, 1);
+    smphre = sem_open("/sembrv", O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, 0);
 
-     if (smphre == SEM_FAILED) {
-        std::cout << "You're a flop " << errno << "\n";
-    } else std::cout << "Succeseed wowww\n";
+    if (smphre == SEM_FAILED) {
+        std::cout << "Sem failed to open: " << errno << "\n";
+    }
 
     int val = sem_init(smphre, 1, 1);
 
     std::cout << "dow\n";
 
-    void* addr = shmat(shmID, data_ptr, shmflag);
-    // smaddr
-    // Copy my struct into the shared memory segmenttry
-    std::cout << "meow";
-    addr = data_ptr; // Copy data into addr?
-    std::cout << "dow";
 
-    int detach = shmdt(addr);
+    // void* addr = shmat(shmID, data_ptr, IPC_CREAT | 0666);
+    void* dataAddr = shmat(shmID, NULL, 0);
+
+    dataAddr = data_ptr; // dataAddr is now this point
+
+    int detach = shmdt(dataAddr);
 
     std::cout << "bow\n";
 
-    // for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 2; i++) {
         threadArgs* ptr = new threadArgs;
         ptr->sem_ptr = smphre;
         ptr->data_ptr = data_ptr;
@@ -50,12 +49,14 @@ int main() {
         int success = pthread_create(&threadId, NULL, produce, (void*) ptr); // Create thread
         pthread_join(threadId, NULL); // Blocking wait
         // delete &ptr;
-    // }
+    }
 
     // delete &data_ptr;
     //TODO:" Cleanup shmat & Sem
     std::cout << "Main thread values: " << (data_ptr)->out << " " << (data_ptr)->in << '\n';
 
+
+        std::cout << 
     return 0;
 }
 
@@ -74,7 +75,7 @@ void* produce(void *arg_struct) {
     // sem_getvalue(smphre, val);
     // std::cout << &val << "\n";
     // sem_trywait(arg_smphre); // wait to enter critical section
-    std::cout << "Meow\n";
+    // std::cout << "Meow\n";
     // void* shmaddr;
     void* addr = shmat(shmID, ptr->data_ptr, shmflag); // Acquire shared memory
 
@@ -93,8 +94,8 @@ void* produce(void *arg_struct) {
     
     int detach = shmdt(addr);
         // std::cout << "Grr\n";
-
-    std::cout << "Thread values: " << (ptr->data_ptr)->out << ' ' << (ptr->data_ptr)->in << '\n';
+    std::cout << "Producer produced an item\n";
+    // std::cout << "Thread values: " << (ptr->data_ptr)->out << ' ' << (ptr->data_ptr)->in << '\n';
 
     sem_post(ptr->sem_ptr); // Only posting in producer
     pthread_exit(0);

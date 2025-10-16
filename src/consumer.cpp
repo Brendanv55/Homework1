@@ -1,61 +1,63 @@
 
-#include <iostream>
-#include "pthread.h"
-#include <semaphore.h>
-#include <sys/ipc.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <cstring>
-
-typedef struct {
-        int in = 0;
-        int out = 0;
-        int buffer[2] = {};
-} data;
+#include "header.hpp"
 
 //Semaphore
-const char* name = "brv_smph";
-sem_t* smphre = sem_open(name, 1);
 
-//Shared memory init
 data* data_ptr = new data;
-
+sem_t* smphre;
+    
 key_t key = 200;
-size_t size = sizeof(&data_ptr);
-int shmflag = 1;
+size_t size = sizeof(data);
+int shmflag = 0;
 int shmID = shmget(key, size, shmflag);
 
 //produce method
-void *consume(void *ptr);
-
-int consumedItem;
+void* produce(void *ptr);
 
 int main() {
-    for (int i = 0; i < 5; i++) {
-        // pthread_t threadId;
-        // int success = pthread_create(&threadId, NULL, produce, NULL); // Create thread
-        // pthread_join(threadId, NULL); // Blocking wait
+    std:: cout << "start consumer\n";
+
+    smphre = sem_open("/sembrv", O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, 1);
+
+    if (smphre == SEM_FAILED) {
+        std::cout << "Sem failed to open: " << errno << "\n";
     }
+
+    for (int i = 0; i < 2; i++) {
+        consumerArgs* ptr = new consumerArgs;
+        ptr->sem_ptr = smphre;
+
+        pthread_t threadId;
+        int success = pthread_create(&threadId, NULL, produce, (void*) ptr); // Create thread
+        pthread_join(threadId, NULL); // Blocking wait
+
+        std::cout << "Consumed: " << ptr->return_val << "\n";
+    }
+
+    return 0;
 }
 
-int item;
-void *consume(void *ptr) {
-    sem_wait(smphre); // wait to enter critical section
+void* produce(void *arg_struct) {
+    consumerArgs* ptr;
+    ptr = (consumerArgs*) arg_struct; // Typecast from void to my argument structure
 
-    void* smaddr;
-    void* addr = shmat(shmID, smaddr, shmflag); // Acquire shared memory
+    // std::cout << "Hello\n"
+    sem_wait(ptr->sem_ptr); // wait to enter critical section
+    std::cout << "Hello \n";
+    key_t key = 200;
+    size_t size = sizeof(data);
+    int shmflag = 0;
+    int shmID = shmget(key, size, shmflag);
+        std::cout << "Hello godbye \n";
 
-    data* shared_data = (data *) addr;
 
-    while (shared_data->out == shared_data->in) {};
+    void* void_ptr = shmat(shmID, NULL, 0);
+    data* shared_data = (data *) void_ptr;
 
+    while (shared_data->in == shared_data->out) {};//Do nothing if empty
 
-    item = shared_data->buffer[shared_data->out]; // Message 
-    shared_data->out = (shared_data->out + 1) % 2; // Increase out
-    
-    int detach = shmdt(addr);
+    ptr->return_val = shared_data->buffer[shared_data->out];
+    shared_data->out = (shared_data->out + 1) % 2;
 
-    sem_post(smphre); // release
     pthread_exit(0);
 }
