@@ -11,8 +11,8 @@ size_t size = sizeof(data);
 int shmflag = 0;
 int shmID = shmget(key, size, shmflag);
 
-//produce method
-void* produce(void *ptr);
+//consume method
+void* consume(void *ptr);
 
 int main() {
     std:: cout << "start consumer\n";
@@ -28,7 +28,7 @@ int main() {
         ptr->sem_ptr = smphre;
 
         pthread_t threadId;
-        int success = pthread_create(&threadId, NULL, produce, (void*) ptr); // Create thread
+        int success = pthread_create(&threadId, NULL, consume, (void*) ptr); // Create thread
         pthread_join(threadId, NULL); // Blocking wait
 
         std::cout << "Consumed: " << ptr->return_val << "\n";
@@ -37,7 +37,7 @@ int main() {
     return 0;
 }
 
-void* produce(void *arg_struct) {
+void* consume(void *arg_struct) {
     consumerArgs* ptr;
     ptr = (consumerArgs*) arg_struct; // Typecast from void to my argument structure
 
@@ -54,7 +54,11 @@ void* produce(void *arg_struct) {
     void* void_ptr = shmat(shmID, NULL, 0);
     data* shared_data = (data *) void_ptr;
 
+    std::cout << "after ptr conversion\n";
+    std::cout << "Let's check if object exitsts: " << shared_data->in << std::endl;
+
     while (shared_data->in == shared_data->out) {};//Do nothing if empty
+
 
     ptr->return_val = shared_data->buffer[shared_data->out];
     shared_data->out = (shared_data->out + 1) % 2;
