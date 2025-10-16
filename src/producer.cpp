@@ -1,64 +1,101 @@
 
-#include <iostream>
-#include "pthread.h"
-#include <semaphore.h>
-#include <sys/ipc.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <cstring>
-// #include <string.h>
-
-typedef struct {
-        int in = 0;
-        int out = 0;
-        int buffer[2] = {};
-} data;
+#include "header.hpp"
 
 //Semaphore
-const char* name = "brv_smph";
-sem_t* smphre = sem_open(name, 1);
 
-//Shared memory init
 data* data_ptr = new data;
-
+sem_t* smphre;
+    
 key_t key = 200;
-size_t size = sizeof(&data_ptr);
-int shmflag = 1;
+size_t size = sizeof(data);
+int shmflag = 0;
 int shmID = shmget(key, size, shmflag);
 
-void* smaddr = 0;
-void* addr = shmat(shmID, smaddr, shmflag);
-// Copy my struct into the shared memory segment
-void * _mcpyaddr = memcpy(addr, data_ptr, sizeof(data));
-int detach = shmdt(addr);
-
 //produce method
-void *produce(void *ptr);
+void* produce(void *ptr);
 
 int main() {
-    for (int i = 0; i < 5; i++) {
-        // pthread_t threadId;
-        // int success = pthread_create(&threadId, NULL, produce, NULL); // Create thread
-        // pthread_join(threadId, NULL); // Blocking wait
-    }
+    std:: cout << "start\n";
+    // const char* name = "/brv";
+    // mode_t mode = 0644;
+    // unsigned value = 0;
+    // int val = sem_init(smphre, 1, 1);
+
+    smphre = sem_open("/sembrv", O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, 1);
+
+     if (smphre == SEM_FAILED) {
+        std::cout << "You're a flop " << errno << "\n";
+    } else std::cout << "Succeseed wowww\n";
+
+    int val = sem_init(smphre, 1, 1);
+
+    std::cout << "dow\n";
+
+    void* addr = shmat(shmID, data_ptr, shmflag);
+    // smaddr
+    // Copy my struct into the shared memory segmenttry
+    std::cout << "meow";
+    addr = data_ptr; // Copy data into addr?
+    std::cout << "dow";
+
+    int detach = shmdt(addr);
+
+    std::cout << "bow\n";
+
+    // for (int i = 0; i < 5; i++) {
+        threadArgs* ptr = new threadArgs;
+        ptr->sem_ptr = smphre;
+        ptr->data_ptr = data_ptr;
+        pthread_t threadId;
+        int success = pthread_create(&threadId, NULL, produce, (void*) ptr); // Create thread
+        pthread_join(threadId, NULL); // Blocking wait
+        // delete &ptr;
+    // }
+
+    // delete &data_ptr;
+    //TODO:" Cleanup shmat & Sem
+    std::cout << "Main thread values: " << (data_ptr)->out << " " << (data_ptr)->in << '\n';
+
+    return 0;
 }
 
-void *produce(void *ptr) {
-    sem_wait(smphre); // wait to enter critical section
+void* produce(void *arg_struct) {
+    threadArgs* ptr;
+    ptr = (threadArgs*) arg_struct;
+    // sem_t* arg_smphre;
+    // arg_smphre = (sem_t*) ptr;
 
-    void* addr = shmat(shmID, smaddr, shmflag); // Acquire shared memory
+    key_t key = 200;
+    size_t size = sizeof(data);
+    int shmflag = 0;
+    int shmID = shmget(key, size, shmflag);
 
-    data* shared_data = (data *) smaddr;
+    // int* val;
+    // sem_getvalue(smphre, val);
+    // std::cout << &val << "\n";
+    // sem_trywait(arg_smphre); // wait to enter critical section
+    std::cout << "Meow\n";
+    // void* shmaddr;
+    void* addr = shmat(shmID, ptr->data_ptr, shmflag); // Acquire shared memory
 
-    while ((shared_data->out + 1) % 2 == shared_data->in) {};
+    // data* shared_data = (data *) shmaddr;
 
+    // std::cout << (ptr->data_ptr)->out << " " << (ptr->data_ptr)->in << '\n';
 
-    shared_data->buffer[shared_data->in] = 1; // Message 
-    shared_data->in = (shared_data->in + 1) % 2; // Circular queuei++
+    // data obj = *(ptr->data_ptr);
+
+    while (((ptr->data_ptr)->in + 1) % 2 == (ptr->data_ptr)->out) {};// s//td::cout << "Waiting " << obj. in << ' ' << obj.out << '\n';
+
+    // std::cout << "Dow\n";
+
+    (ptr->data_ptr)->buffer[(ptr->data_ptr)->in] = 1; // Message 
+    (ptr->data_ptr)->in = ((ptr->data_ptr)->in + 1) % 2; // Circular queuei++
     
-    detach = shmdt(addr);
+    int detach = shmdt(addr);
+        // std::cout << "Grr\n";
 
-    sem_post(smphre); // release
+    std::cout << "Thread values: " << (ptr->data_ptr)->out << ' ' << (ptr->data_ptr)->in << '\n';
+
+    sem_post(ptr->sem_ptr); // Only posting in producer
     pthread_exit(0);
 }

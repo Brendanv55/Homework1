@@ -7,7 +7,6 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <cstring>
-// #include <string.h>
 
 typedef struct {
         int in = 0;
@@ -40,9 +39,11 @@ int main() {
     }
 }
 
+int item;
 void *consume(void *ptr) {
     sem_wait(smphre); // wait to enter critical section
 
+    void* smaddr;
     void* addr = shmat(shmID, smaddr, shmflag); // Acquire shared memory
 
     data* shared_data = (data *) addr;
@@ -50,10 +51,10 @@ void *consume(void *ptr) {
     while (shared_data->out == shared_data->in) {};
 
 
-    shared_data->buffer[shared_data->in] = 1; // Message 
-    shared_data->in = (shared_data->in + 1) % 2; // Circular queuei++
+    item = shared_data->buffer[shared_data->out]; // Message 
+    shared_data->out = (shared_data->out + 1) % 2; // Increase out
     
-    detach = shmdt(addr);
+    int detach = shmdt(addr);
 
     sem_post(smphre); // release
     pthread_exit(0);
