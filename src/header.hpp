@@ -10,6 +10,10 @@
 #include <stdexcept>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 typedef struct {
         int in = 0;
@@ -23,7 +27,7 @@ typedef struct {
     data* data_ptr;
 } threadArgs;
 
-typedef struct {
-    sem_t* sem_ptr;
-    int return_val;
-} consumerArgs;
+// typedef struct {
+//     sem_t* sem_ptr;
+//     int return_val;
+// } consumerArgs;
