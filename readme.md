@@ -16,4 +16,5 @@ Brendan Valleau
  `./compiled/consumer`
 
 And so, the output will be the resulting input from the producer file. Examples of proper execution include the following:
-![[./files/image.png]]
+
+![Example](./files/image.png)
