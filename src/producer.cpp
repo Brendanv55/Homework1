@@ -1,14 +1,18 @@
 
+// Brendan Valleau
+// 10/17/2025
+// KSU CS-OS
+// Homework1
+
 #include "header.hpp"
 
-data* data_ptr = new data;
+// data* data_ptr = new data;
 sem_t* smphre;
 
 //produce method
 void* produce(void *ptr);
 
 int main() {
-    std:: cout << "start producer\n";
 
     smphre = sem_open("/sembrv", O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, 0);
 
@@ -18,51 +22,30 @@ int main() {
 
     int val = sem_init(smphre, 1, 1);
 
-    std::cout << "dow\n";
-
     key_t key = 200;
     size_t size = sizeof(data);
-    // int shmflag = 0;
     int shmID = shmget(key, size, IPC_CREAT | IPC_EXCL | 0777);
 
     if (shmID == -1) std::cerr << "Shared memory failed to retrieve";
 
     data* dataAddr = (data*) shmat(shmID, NULL, 0);
-    if (dataAddr == (void*)-1) { std::cerr << "Bad shmat use? "<< errno << "\n";}
-
-    // dataAddr->in = 52;
-    // std::cout << dataAddr->in << "\n";
-    // std::cout << shmID << " " << sizeof(data) << '\n';
-
-    // if (ftruncate(shmID, sizeof(data)) == -1) {
-    //     std::cerr << "Memory resize failed " << errno;
-    // }
-
-    // data* shared_data;
-     
-    // shared_data = (data*) mmap(NULL, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, shmID, 0);
-    
-    // if (shared_data == MAP_FAILED) std::cerr << "Memory map failed :(" << errno;
-
-    // //Unmap shared mem from proccess
-    // if (munmap (shared_data, sizeof (data)) == -1) std::cerr<< "munmap " << errno;    
+    if (dataAddr == (void*)-1) { std::cerr << "shmat failed, error no:  "<< errno << "\n";}
 
     int detach = shmdt(dataAddr);
 
-    std::cout << "bow\n";
+    // std::cout << "bow\n";
 
-    for (int i = 0; i < 100000; i++) {
+    for (int i = 0; i < 10; i++) {
         threadArgs* ptr = new threadArgs;
         ptr->sem_ptr = smphre;
-        ptr->data_ptr = data_ptr;
         pthread_t threadId;
         int success = pthread_create(&threadId, NULL, produce, (void*) ptr); // Create thread
         pthread_join(threadId, NULL); // Blocking wait
-        // delete &ptr;
+        delete ptr;
     }
 
-    std::cout << "Main thread values: " << (data_ptr)->out << " " << (data_ptr)->in << '\n';
-    // shmctl(shmID, , 0);
+    sem_post(smphre); // Allow consumer to process data before closing segment
+    sem_close(smphre);
     shmctl(shmID, IPC_RMID, 0);
     return 0;
 }
@@ -84,8 +67,8 @@ void* produce(void *arg_struct) {
 
     while ((addr->in + 1) % 2 == addr->out) {};
 
-    addr->buffer[addr->in] = 1; //rand()%11; // Message 
-    addr->in = (addr->in + 1) % 2; // Circular queuei++
+    addr->buffer[addr->in] = 1;  // Message 
+    addr->in = (addr->in + 1) % 2; // Circular queuei
     
     int detach = shmdt(addr);
 
