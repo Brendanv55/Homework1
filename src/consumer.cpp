@@ -9,7 +9,7 @@ sem_t* smphre;
 key_t key = 200;
 size_t size = sizeof(data);
 int shmflag = 0;
-int shmID = shmget(key, size, shmflag);
+int shmID = shmget(key, size, IPC_CREAT | IPC_EXCL | 0777);
 
 //consume method
 void* consume(void *ptr);
@@ -23,7 +23,7 @@ int main() {
         std::cout << "Sem failed to open: " << errno << "\n";
     }
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 10000; i++) {
         consumerArgs* ptr = new consumerArgs;
         ptr->sem_ptr = smphre;
 
@@ -33,7 +33,6 @@ int main() {
 
         std::cout << "Consumed: " << ptr->return_val << "\n";
     }
-
     return 0;
 }
 
@@ -50,32 +49,18 @@ void* consume(void *arg_ptr) {
     key_t key = 200;
     size_t size = sizeof(data);
     int shmflag = 0;
-    int shmID = shmget(key, size, shmflag);
-        // std::cout << "Hello godbye \n";
+    int shmID = shmget(key, size, 0666);
 
-
-    // void* void_ptr = shmat(shmID, NULL, 0);
-    // data* shared_data = (data *) void_ptr;
-    // data* dataptr;
-    // dataptr = (data*) void_ptr;
-
-    // void* result= mmap(NULL, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, shmID, 0);
-    // if (result == MAP_FAILED) {
-    //     std::cerr << "Memory map failed :(";
-    // } else dataptr = (data*) result;
     data* dataptr = (data*) shmat(shmID, NULL, 0);
-
-    // std::cout << "after ptr conversion\n";
-    // std::cout << "Let's check if object exitsts: " << dataptr->in << std::endl;
 
     while (dataptr->in == dataptr->out) {};//Do nothing if empty
 
-
-    ptr->return_val = dataptr->buffer[dataptr->out];
+    int val = dataptr->buffer[dataptr->out];
+    std::cout << val << " was consumed. " << std::endl;
+    ptr->return_val = val;
     dataptr->out = (dataptr->out + 1) % 2;
 
+    int detach = shmdt(dataptr);
     
-    // if (munmap (dataptr, sizeof (data)) == -1) std::cerr<< "munmap";
-
     pthread_exit(0);
 }

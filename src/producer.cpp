@@ -1,8 +1,6 @@
 
 #include "header.hpp"
 
-//Semaphore
-
 data* data_ptr = new data;
 sem_t* smphre;
 
@@ -32,7 +30,7 @@ int main() {
     data* dataAddr = (data*) shmat(shmID, NULL, 0);
     if (dataAddr == (void*)-1) { std::cerr << "Bad shmat use? "<< errno << "\n";}
 
-    dataAddr->in = 52;
+    // dataAddr->in = 52;
     // std::cout << dataAddr->in << "\n";
     // std::cout << shmID << " " << sizeof(data) << '\n';
 
@@ -53,7 +51,7 @@ int main() {
 
     std::cout << "bow\n";
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 100000; i++) {
         threadArgs* ptr = new threadArgs;
         ptr->sem_ptr = smphre;
         ptr->data_ptr = data_ptr;
@@ -64,7 +62,8 @@ int main() {
     }
 
     std::cout << "Main thread values: " << (data_ptr)->out << " " << (data_ptr)->in << '\n';
-    shmctl(shmID, 0, 0);
+    // shmctl(shmID, , 0);
+    shmctl(shmID, IPC_RMID, 0);
     return 0;
 }
 
@@ -75,7 +74,7 @@ void* produce(void *arg_struct) {
     key_t key = 200;
     size_t size = sizeof(data);
     int shmflag = 0;
-    int shmID = shmget(key, size, shmflag);
+    int shmID = shmget(key, size, 0666);
 
     if (shmID < 0) std::cerr << " Bad get " << errno << "\n";
 
@@ -83,9 +82,9 @@ void* produce(void *arg_struct) {
 
     if (addr == (void*)-1) std::cerr << "Bad mat " << errno << "\n";
 
-    while ((addr->in + 1) % 2 == addr->out) {};// s//td::cout << "Waiting " << obj. in << ' ' << obj.out << '\n';
+    while ((addr->in + 1) % 2 == addr->out) {};
 
-    addr->buffer[addr->in] = 1; // Message 
+    addr->buffer[addr->in] = 1//rand()%11; // Message 
     addr->in = (addr->in + 1) % 2; // Circular queuei++
     
     int detach = shmdt(addr);
