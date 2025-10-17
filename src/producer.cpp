@@ -84,7 +84,7 @@ void* produce(void *arg_struct) {
 
     while ((addr->in + 1) % 2 == addr->out) {};
 
-    addr->buffer[addr->in] = 1//rand()%11; // Message 
+    addr->buffer[addr->in] = 1; //rand()%11; // Message 
     addr->in = (addr->in + 1) % 2; // Circular queuei++
     
     int detach = shmdt(addr);
